@@ -1,0 +1,8 @@
+{
+  "name": "Sport Maison",
+  "description": "Application PWA mobile-first de chronomètre HIIT à fort contraste pour entraînements et escalade avec Wake Lock et bips Web Audio.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

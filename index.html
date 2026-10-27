@@ -1,0 +1,2106 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Sport Maison</title>
+    <meta name="description" content="Sport Maison - Chronomètre HIIT et circuits d'entraînement à fort contraste avec Wake Lock et bips Web Audio." />
+
+    <!-- Meta balises PWA pour iOS et Android (Plein écran sans barre de navigation) -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Sport Maison" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#090a0f" id="theme-color-meta" />
+    <meta name="application-name" content="Sport Maison" />
+    <meta name="msapplication-navbutton-color" content="#090a0f" />
+    <meta name="msapplication-starturl" content="/" />
+
+    <!-- Icônes de l'application (PWA & iOS Accueil) -->
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <style>
+      /* ==========================================================================
+         STYLE CSS - DARK MODE ULTRA-CONTRASTÉ & MOBILE FIRST
+         ========================================================================== */
+      :root {
+        --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+        /* Palette sombre OLED & Thèmes */
+        --bg-idle: #090a0f;
+        --card-bg: rgba(20, 24, 36, 0.88);
+        --card-border: rgba(255, 255, 255, 0.12);
+
+        /* Thème Travail (Rouge / Orange très dynamique) */
+        --theme-work-bg: #1c0508;
+        --theme-work-primary: #ff334b;
+        --theme-work-accent: #ff6b00;
+        --theme-work-glow: rgba(255, 51, 75, 0.35);
+
+        /* Thème Repos standard (Bleu / Cyan) */
+        --theme-rest-bg: #03141f;
+        --theme-rest-primary: #00d2ff;
+        --theme-rest-accent: #00f0b5;
+        --theme-rest-glow: rgba(0, 210, 255, 0.3);
+
+        /* Thème Repos fin de tour 60s (Bleu nuit / Violet) */
+        --theme-round-rest-bg: #090c24;
+        --theme-round-rest-primary: #6366f1;
+        --theme-round-rest-accent: #a855f7;
+        --theme-round-rest-glow: rgba(99, 102, 241, 0.35);
+
+        /* Thème Préparation (Ambre / Jaune or) */
+        --theme-prep-bg: #1c1503;
+        --theme-prep-primary: #ffb703;
+        --theme-prep-accent: #fb8500;
+        --theme-prep-glow: rgba(255, 183, 3, 0.35);
+
+        /* Thème Terminé (Émeraude) */
+        --theme-done-bg: #031c10;
+        --theme-done-primary: #10b981;
+        --theme-done-accent: #34d399;
+        --theme-done-glow: rgba(16, 185, 129, 0.35);
+
+        /* Variables actives */
+        --current-bg: var(--bg-idle);
+        --current-primary: #ffffff;
+        --current-accent: #64748b;
+        --current-glow: transparent;
+        --progress-color: #64748b;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html, body {
+        height: 100%;
+        width: 100%;
+        overflow-x: hidden;
+        background-color: var(--current-bg);
+        color: #ffffff;
+        font-family: var(--font-sans);
+        user-select: none;
+        -webkit-user-select: none;
+        transition: background-color 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding-top: env(safe-area-inset-top, 0);
+        padding-bottom: env(safe-area-inset-bottom, 12px);
+        padding-left: env(safe-area-inset-left, 12px);
+        padding-right: env(safe-area-inset-right, 12px);
+        position: relative;
+      }
+
+      /* Conteneurs de vues */
+      .app-view {
+        display: none;
+        width: 100%;
+        min-height: 100%;
+        flex-direction: column;
+      }
+
+      .app-view.active {
+        display: flex;
+      }
+
+      /* ==========================================================================
+         VUE 1 : ACCUEIL / SÉLECTION DU CIRCUIT (HOME)
+         ========================================================================== */
+      .home-container {
+        max-width: 680px;
+        margin: 0 auto;
+        width: 100%;
+        padding: 24px 16px 36px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .home-hero {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px 0;
+      }
+
+      .hero-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #ff334b;
+        background: rgba(255, 51, 75, 0.15);
+        padding: 4px 12px;
+        border-radius: 9999px;
+        width: fit-content;
+        border: 1px solid rgba(255, 51, 75, 0.3);
+      }
+
+      .hero-title {
+        font-size: clamp(2rem, 6vw, 2.8rem);
+        font-weight: 900;
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+        background: linear-gradient(180deg, #ffffff 40%, #94a3b8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .hero-desc {
+        font-size: 0.95rem;
+        color: #94a3b8;
+        line-height: 1.45;
+      }
+
+      .circuits-section-title {
+        font-size: 0.85rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #64748b;
+        margin-top: 8px;
+      }
+
+      .circuits-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .circuit-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+      }
+
+      .circuit-card:hover {
+        border-color: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+      }
+
+      .circuit-card.highlight {
+        border-color: rgba(255, 51, 75, 0.4);
+        background: linear-gradient(170deg, rgba(28, 5, 8, 0.85) 0%, rgba(20, 24, 36, 0.9) 100%);
+      }
+
+      .circuit-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .circuit-badge {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #cbd5e1;
+      }
+
+      .circuit-badge.badge-primary {
+        background: rgba(255, 51, 75, 0.2);
+        color: #ff334b;
+        border: 1px solid rgba(255, 51, 75, 0.3);
+      }
+
+      .circuit-title {
+        font-size: 1.35rem;
+        font-weight: 800;
+        line-height: 1.25;
+        color: #ffffff;
+        margin-top: 4px;
+      }
+
+      .circuit-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .stat-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #e2e8f0;
+      }
+
+      .stat-chip svg {
+        color: #ff334b;
+      }
+
+      .circuit-exercises-preview {
+        background: rgba(0, 0, 0, 0.35);
+        border-radius: 16px;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .preview-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+      }
+
+      .exercise-mini-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+      }
+
+      .exercise-mini-num {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .exercise-mini-name {
+        color: #f1f5f9;
+        font-weight: 600;
+      }
+
+      .exercise-mini-desc {
+        color: #94a3b8;
+        font-size: 0.78rem;
+        margin-left: auto;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 140px;
+      }
+
+      .circuit-card-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 4px;
+      }
+
+      .btn-start-circuit {
+        flex: 1;
+        background: linear-gradient(135deg, #ff334b 0%, #e11d48 100%);
+        color: #ffffff;
+        border: none;
+        border-radius: 16px;
+        padding: 14px 20px;
+        font-size: 1rem;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+        box-shadow: 0 8px 20px rgba(255, 51, 75, 0.35);
+        transition: transform 0.2s ease, filter 0.2s ease;
+      }
+
+      .btn-start-circuit:active {
+        transform: scale(0.97);
+      }
+
+      .btn-circuit-details {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        border-radius: 16px;
+        padding: 14px 18px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+
+      .btn-circuit-details:hover {
+        background: rgba(255, 255, 255, 0.18);
+      }
+
+      /* Carte ajouter un circuit */
+      .add-circuit-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 2px dashed rgba(255, 255, 255, 0.15);
+        border-radius: 24px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .add-circuit-card:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+
+      .add-icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #38bdf8;
+      }
+
+      .add-circuit-card h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+      }
+
+      .add-circuit-card p {
+        font-size: 0.82rem;
+        color: #94a3b8;
+        max-width: 380px;
+      }
+
+      /* ==========================================================================
+         VUE 2 : CHRONOMÈTRE ACTIF (TIMER VIEW)
+         ========================================================================== */
+      .view-timer {
+        justify-content: space-between;
+      }
+
+      /* Barre de progression fluide en haut */
+      .progress-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        z-index: 100;
+      }
+
+      .progress-bar {
+        height: 100%;
+        width: 0%;
+        background: var(--progress-color);
+        box-shadow: 0 0 16px var(--current-glow);
+        transition: width 0.1s linear, background-color 0.4s ease;
+      }
+
+      .overall-progress-bar {
+        position: fixed;
+        top: 8px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.05);
+        z-index: 99;
+      }
+
+      .overall-progress-fill {
+        height: 100%;
+        width: 0%;
+        background: rgba(255, 255, 255, 0.5);
+        transition: width 0.3s ease;
+      }
+
+      /* Header chronomètre */
+      .app-header {
+        padding: 16px 16px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: 640px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      .top-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .btn-home-back {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        padding: 8px 14px;
+        border-radius: 12px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .btn-home-back:hover {
+        background: rgba(255, 255, 255, 0.18);
+      }
+
+      .app-title-badge {
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #cbd5e1;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        max-width: 220px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .app-title-badge span.pulse-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: var(--current-primary);
+        box-shadow: 0 0 10px var(--current-primary);
+        flex-shrink: 0;
+      }
+
+      .quick-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .icon-btn {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .icon-btn:hover {
+        background: rgba(255, 255, 255, 0.18);
+        transform: translateY(-1px);
+      }
+
+      .icon-btn:active {
+        transform: scale(0.92);
+      }
+
+      .icon-btn.active {
+        background: rgba(16, 185, 129, 0.25);
+        border-color: #10b981;
+        color: #34d399;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #cbd5e1;
+        width: fit-content;
+        margin: 0 auto;
+      }
+
+      .status-pill.wake-active {
+        border-color: rgba(16, 185, 129, 0.4);
+        color: #34d399;
+      }
+
+      .indicators-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        width: 100%;
+      }
+
+      .indicator-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 10px 14px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+
+      .indicator-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+        margin-bottom: 2px;
+      }
+
+      .indicator-value {
+        font-size: 1.45rem;
+        font-weight: 900;
+        font-family: var(--font-mono);
+        color: #ffffff;
+      }
+
+      /* Corps principal chronomètre */
+      .main-timer-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 16px;
+        max-width: 640px;
+        margin: 0 auto;
+        width: 100%;
+        text-align: center;
+        gap: 16px;
+      }
+
+      .current-state-container {
+        width: 100%;
+      }
+
+      .state-tag {
+        display: inline-block;
+        padding: 6px 16px;
+        border-radius: 9999px;
+        font-size: 0.85rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        background: rgba(255, 255, 255, 0.12);
+        color: var(--current-primary);
+        border: 1px solid var(--current-primary);
+        margin-bottom: 8px;
+        box-shadow: 0 0 16px var(--current-glow);
+      }
+
+      .current-title {
+        font-size: clamp(2rem, 7vw, 3.2rem);
+        font-weight: 900;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6);
+        word-break: break-word;
+      }
+
+      .current-description {
+        font-size: clamp(1rem, 3.8vw, 1.35rem);
+        font-weight: 500;
+        color: #e2e8f0;
+        margin-top: 8px;
+        max-width: 520px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.35;
+        background: rgba(0, 0, 0, 0.28);
+        padding: 8px 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .timer-display-box {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 10px 0;
+      }
+
+      .timer-giant {
+        font-family: var(--font-mono);
+        font-size: clamp(5.5rem, 28vw, 11rem);
+        font-weight: 900;
+        line-height: 0.9;
+        letter-spacing: -0.05em;
+        color: #ffffff;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 45px var(--current-glow), 0 4px 12px rgba(0, 0, 0, 0.8);
+        transition: color 0.3s ease;
+      }
+
+      .timer-giant.pulse-warning {
+        animation: urgent-pulse 0.5s ease-in-out infinite alternate;
+        color: var(--current-primary);
+      }
+
+      @keyframes urgent-pulse {
+        0% { transform: scale(1); filter: brightness(1); }
+        100% { transform: scale(1.08); filter: brightness(1.4); }
+      }
+
+      .next-up-card {
+        width: 100%;
+        background: rgba(15, 20, 30, 0.9);
+        border: 2px solid rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      }
+
+      .next-up-left {
+        text-align: left;
+        flex: 1;
+      }
+
+      .next-up-tag {
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        color: #38bdf8;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 2px;
+      }
+
+      .next-up-name {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #ffffff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .next-up-sub {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .next-up-badge {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #e2e8f0;
+        white-space: nowrap;
+      }
+
+      /* Contrôles du bas */
+      .controls-section {
+        padding: 12px 16px 20px;
+        max-width: 640px;
+        margin: 0 auto;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .controls-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        width: 100%;
+      }
+
+      .secondary-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        height: 60px;
+        width: 60px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .secondary-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+
+      .secondary-btn:active {
+        transform: scale(0.92);
+      }
+
+      .big-action-btn {
+        flex: 1;
+        max-width: 320px;
+        height: 76px;
+        border-radius: 24px;
+        border: none;
+        cursor: pointer;
+        font-family: var(--font-sans);
+        font-size: 1.45rem;
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        color: #ffffff;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      }
+
+      .big-action-btn.btn-start {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+      }
+
+      .big-action-btn.btn-pause {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4);
+      }
+
+      .big-action-btn.btn-resume {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+      }
+
+      .big-action-btn:active {
+        transform: scale(0.96);
+      }
+
+      .workout-summary-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #94a3b8;
+        padding: 0 8px;
+      }
+
+      .workout-summary-bar span {
+        font-family: var(--font-mono);
+        color: #e2e8f0;
+      }
+
+      /* Modales */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 200;
+      }
+
+      .modal-backdrop.open {
+        display: flex;
+      }
+
+      .modal-sheet {
+        background: #111522;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 28px;
+        max-width: 520px;
+        width: 100%;
+        max-height: 85vh;
+        overflow-y: auto;
+        padding: 24px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .modal-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+      }
+
+      .exercise-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .exercise-item {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 14px 16px;
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+      }
+
+      .exercise-num {
+        background: var(--theme-work-primary);
+        color: #ffffff;
+        font-family: var(--font-mono);
+        font-weight: 900;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 0.95rem;
+      }
+
+      .exercise-info h4 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+
+      .exercise-info p {
+        font-size: 0.85rem;
+        color: #94a3b8;
+        line-height: 1.35;
+      }
+
+      .modal-close-btn {
+        margin-top: 20px;
+        width: 100%;
+        padding: 14px;
+        background: rgba(255, 255, 255, 0.12);
+        border: none;
+        border-radius: 16px;
+        color: #ffffff;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      /* Modale guide d'ajout d'un circuit */
+      .code-snippet-box {
+        background: #090a0f;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        padding: 14px;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        color: #38bdf8;
+        line-height: 1.4;
+        overflow-x: auto;
+        white-space: pre;
+        margin: 12px 0;
+      }
+
+      @media (max-height: 640px) {
+        .app-header { padding: 8px 14px 4px; gap: 6px; }
+        .indicators-grid { gap: 6px; }
+        .indicator-card { padding: 6px 10px; }
+        .indicator-value { font-size: 1.15rem; }
+        .main-timer-section { gap: 8px; padding: 4px 12px; }
+        .current-title { font-size: 1.5rem; }
+        .current-description { font-size: 0.85rem; padding: 4px 10px; }
+        .timer-giant { font-size: 4.5rem; }
+        .next-up-card { padding: 8px 12px; }
+        .big-action-btn { height: 56px; font-size: 1.15rem; }
+        .secondary-btn { height: 50px; width: 50px; }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ==========================================================================
+         VUE 1 : MENU ACCUEIL (CHOIX DU CIRCUIT)
+         ========================================================================== -->
+    <div id="view-home" class="app-view active">
+      <div class="home-container">
+        <!-- Hero Accueil Sport Maison -->
+        <div class="home-hero">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 4px;">
+            <img src="/logo.svg" alt="Logo Sport Maison" style="width: 52px; height: 52px; border-radius: 14px; object-fit: cover; box-shadow: 0 4px 20px rgba(255, 51, 75, 0.4); border: 1px solid rgba(255, 255, 255, 0.15);" />
+            <div>
+              <div class="hero-tag">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                PWA Sport Maison
+              </div>
+              <h1 class="hero-title" style="margin-top: 2px;">Sport Maison</h1>
+            </div>
+          </div>
+          <p class="hero-desc">Choisis ton circuit d'entraînement à haute intensité. Chrono géant ultra contrasté, bips Web Audio et écran maintenu allumé.</p>
+        </div>
+
+        <div class="circuits-section-title">Circuits disponibles</div>
+
+        <!-- Liste des cartes de circuits générée dynamiquement -->
+        <div id="circuits-grid-container" class="circuits-grid">
+          <!-- Injecté dynamiquement par JavaScript à partir de workouts -->
+        </div>
+
+        <!-- Bouton / Carte d'information pour ajouter des circuits -->
+        <div id="btn-open-add-guide" class="add-circuit-card">
+          <div class="add-icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </div>
+          <div>
+            <h3>Ajouter de futurs circuits</h3>
+            <p>Structure 100% évolutive : clique ici pour voir comment injecter de nouveaux circuits personnalisés facilement.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+         VUE 2 : CHRONOMÈTRE D'ENTRAÎNEMENT ACTIF
+         ========================================================================== -->
+    <div id="view-timer" class="app-view view-timer">
+      <!-- Barre de progression fluide de l'intervalle actuel -->
+      <div class="progress-container">
+        <div id="progress-bar" class="progress-bar"></div>
+      </div>
+      <!-- Progression générale de la séance -->
+      <div class="overall-progress-bar">
+        <div id="overall-progress-bar" class="overall-progress-fill"></div>
+      </div>
+
+      <!-- En-tête : Retour Menu, Titre, Wake Lock et Actions -->
+      <header class="app-header">
+        <div class="top-nav">
+          <!-- Bouton retour Accueil -->
+          <button id="btn-back-home" class="btn-home-back" title="Revenir au menu des circuits" aria-label="Menu principal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"></path>
+            </svg>
+            Circuits
+          </button>
+
+          <div class="app-title-badge" title="Circuit en cours">
+            <span class="pulse-dot"></span>
+            <span id="circuit-name-label">Circuit Escalade</span>
+          </div>
+
+          <div class="quick-actions">
+            <button id="btn-sound-toggle" class="icon-btn" title="Activer / Couper le son" aria-label="Toggle audio">
+              <svg id="icon-sound-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+              </svg>
+              <svg id="icon-sound-off" style="display: none;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <line x1="23" y1="9" x2="17" y2="15"></line>
+                <line x1="17" y1="9" x2="23" y2="15"></line>
+              </svg>
+            </button>
+            <button id="btn-list-modal" class="icon-btn" title="Voir les exercices du circuit" aria-label="Voir la liste des exercices">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+            </button>
+            <button id="btn-fullscreen" class="icon-btn" title="Mode plein écran" aria-label="Toggle plein écran">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Badge statut Wake Lock -->
+        <div id="wake-lock-status" class="status-pill" title="Maintient l'écran allumé pendant votre séance">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 6v6l4 2"></path>
+          </svg>
+          <span id="wake-lock-text">Veille écran automatique</span>
+        </div>
+
+        <!-- Indicateurs Tour & Exercice -->
+        <div class="indicators-grid">
+          <div class="indicator-card">
+            <div class="indicator-label">Tour</div>
+            <div id="round-indicator" class="indicator-value">Tour 1/4</div>
+          </div>
+          <div class="indicator-card">
+            <div class="indicator-label">Exercice</div>
+            <div id="exercise-indicator" class="indicator-value">Exo 1/5</div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Zone Centrale : État, Description et Chronomètre Géant -->
+      <main class="main-timer-section">
+        <div class="current-state-container">
+          <div id="state-tag" class="state-tag">PRÊT</div>
+          <h1 id="current-title" class="current-title">Pompes Spiderman</h1>
+          <p id="current-description" class="current-description">Genou vers coude à la descente</p>
+        </div>
+
+        <div class="timer-display-box">
+          <div id="timer-giant" class="timer-giant">00:10</div>
+        </div>
+
+        <!-- Encart bien visible "À SUIVRE :" -->
+        <div class="next-up-card">
+          <div class="next-up-left">
+            <div class="next-up-tag">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+              À SUIVRE :
+            </div>
+            <div id="next-exercise-name" class="next-up-name">Hollow Body Hold</div>
+            <div id="next-exercise-sub" class="next-up-sub">Lombaires plaqués, lever jambes et épaules</div>
+          </div>
+          <div id="next-duration-badge" class="next-up-badge">40s</div>
+        </div>
+      </main>
+
+      <!-- Contrôles du bas : Reset, Gros bouton Start/Pause, Suivant -->
+      <footer class="controls-section">
+        <div class="controls-row">
+          <!-- Bouton Précédent -->
+          <button id="btn-prev" class="secondary-btn" title="Intervalle précédent" aria-label="Intervalle précédent">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="19 20 9 12 19 4 19 20"></polygon>
+              <line x1="5" y1="19" x2="5" y2="5"></line>
+            </svg>
+          </button>
+
+          <!-- Gros Bouton Start / Pause -->
+          <button id="btn-toggle-play" class="big-action-btn btn-start" aria-label="Démarrer ou mettre en pause l'entraînement">
+            <svg id="play-icon" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <svg id="pause-icon" style="display: none;" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+            <span id="play-btn-text">DÉMARRER</span>
+          </button>
+
+          <!-- Bouton Sauter l'intervalle -->
+          <button id="btn-next" class="secondary-btn" title="Passer au suivant" aria-label="Passer au suivant">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 4 15 12 5 20 5 4"></polygon>
+              <line x1="19" y1="5" x2="19" y2="19"></line>
+            </svg>
+          </button>
+
+          <!-- Bouton Reset complet -->
+          <button id="btn-reset" class="secondary-btn" title="Réinitialiser tout le chrono" aria-label="Réinitialiser">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Résumé du temps total -->
+        <div class="workout-summary-bar">
+          <div>Écoulé : <span id="time-elapsed-label">00:00</span></div>
+          <div>Durée restante : <span id="time-remaining-label">21:10</span></div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Modale de prévisualisation des exercices -->
+    <div id="modal-exercises" class="modal-backdrop">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <h3 id="modal-circuit-title" class="modal-title">Exercices du Circuit</h3>
+          <button id="btn-close-modal" class="icon-btn" aria-label="Fermer la modale">✕</button>
+        </div>
+        <div id="exercise-list-container" class="exercise-list">
+          <!-- Injecté dynamiquement -->
+        </div>
+        <button id="btn-modal-ok" class="modal-close-btn">Fermer</button>
+      </div>
+    </div>
+
+    <!-- Modale d'aide pour ajouter de nouveaux circuits -->
+    <div id="modal-add-guide" class="modal-backdrop">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <h3 class="modal-title">Ajouter un nouveau circuit</h3>
+          <button id="btn-close-add-modal" class="icon-btn" aria-label="Fermer">✕</button>
+        </div>
+        <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.45;">
+          L'application a été conçue pour être <strong>totalement évolutive</strong>. Pour ajouter un nouveau circuit, il vous suffit d'ajouter une entrée dans l'objet <code>workouts</code> au début du script :
+        </p>
+        <div class="code-snippet-box">workouts.mon_nouveau_circuit = {
+  id: "mon_nouveau_circuit",
+  name: "Circuit Jambes & Cardio",
+  category: "Bas du corps",
+  totalRounds: 3,
+  prepTime: 10,
+  workTime: 45,
+  restTime: 15,
+  roundRestTime: 60,
+  exercises: [
+    { id: 1, name: "Squats sautés", description: "Flexion 90° et impulsion", tips: "Amortis en douceur" },
+    { id: 2, name: "Fentes alternées", description: "Genou arrière frôlant le sol", tips: "Garde le buste droit" },
+    { id: 3, name: "Gainage chaise", description: "Dos au mur à 90 degrés", tips: "Respire calmement" }
+  ]
+};</div>
+        <p style="font-size: 0.82rem; color: #94a3b8; line-height: 1.4;">
+          Il apparaîtra alors automatiquement sur votre menu d'accueil avec son badge, sa durée calculée et tous ses réglages !
+        </p>
+        <button id="btn-modal-add-ok" class="modal-close-btn">Compris !</button>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+         JAVASCRIPT ENTIÈREMENT EMBARQUÉ
+         ========================================================================== */ -->
+    <script type="module">
+      /* ==========================================================================
+         STRUCTURE DES DONNÉES ÉVOLUTIVE (WORKOUTS)
+         Ajoutez ou modifiez des circuits ici en toute simplicité !
+         ========================================================================== */
+      const workouts = {
+        escalade: {
+          id: "escalade",
+          name: "Circuit Escalade - Abdos/Pompes",
+          category: "Gainage & Poussée • Escalade",
+          totalRounds: 4,
+          prepTime: 10,        // Décompte de préparation initiale : 10 secondes
+          workTime: 40,        // Phase d'exercice : 40 secondes
+          restTime: 20,        // Phase de repos standard : 20 secondes
+          roundRestTime: 60,   // Phase de repos de fin de tour (après ex 5) : 60 secondes
+          exercises: [
+            {
+              id: 1,
+              name: "Pompes Spiderman",
+              description: "Genou vers coude à la descente",
+              tips: "Garde le bassin stable et fléchis les bras à 90°"
+            },
+            {
+              id: 2,
+              name: "Hollow Body Hold",
+              description: "Lombaires plaqués, lever jambes et épaules",
+              tips: "Contracte fort les abdos, aucun creux dans le dos"
+            },
+            {
+              id: 3,
+              name: "Pompes piquées",
+              description: "Corps en V inversé, plier coudes vers le sol",
+              tips: "Pointe les fesses vers le ciel, tête entre les épaules"
+            },
+            {
+              id: 4,
+              name: "Essuie-glaces au sol",
+              description: "Sur le dos, jambes verticales, basculer G/D",
+              tips: "Bras en croix au sol, contrôle la descente sur les côtés"
+            },
+            {
+              id: 5,
+              name: "Superman",
+              description: "Sur le ventre, relever buste/jambes, bloquer 2 sec",
+              tips: "Contracte les fessiers et le haut du dos sans à-coups"
+            }
+          ]
+        }
+      };
+
+      /* ==========================================================================
+         GÉNÉRATEUR DE SÉQUENCE HIIT
+         Construit les intervalles :
+         Prep (10s) -> [Work (40s) -> Rest (20s/60s)] x N -> Terminé
+         ========================================================================== */
+      function buildWorkoutSequence(workout) {
+        const seq = [];
+
+        // 1. Décompte de préparation initiale
+        seq.push({
+          type: "prep",
+          title: "PRÉPARATION",
+          description: "Mets-toi en place pour le 1er exercice",
+          duration: workout.prepTime,
+          round: 1,
+          totalRounds: workout.totalRounds,
+          exerciseIndex: 0,
+          exerciseTotal: workout.exercises.length,
+          exerciseData: workout.exercises[0]
+        });
+
+        // 2. Boucle des tours et exercices
+        for (let r = 1; r <= workout.totalRounds; r++) {
+          for (let e = 0; e < workout.exercises.length; e++) {
+            const currentEx = workout.exercises[e];
+            const isLastExerciseOfRound = (e === workout.exercises.length - 1);
+            const isLastRound = (r === workout.totalRounds);
+
+            // Phase de travail
+            seq.push({
+              type: "work",
+              title: currentEx.name,
+              description: currentEx.description,
+              duration: workout.workTime,
+              round: r,
+              totalRounds: workout.totalRounds,
+              exerciseIndex: e + 1,
+              exerciseTotal: workout.exercises.length,
+              exerciseData: currentEx
+            });
+
+            // Phase de repos
+            if (isLastExerciseOfRound) {
+              if (!isLastRound) {
+                // Repos de fin de tour (60s)
+                seq.push({
+                  type: "round_rest",
+                  title: "REPOS FIN DE TOUR",
+                  description: "Récupère bien, hydrate-toi avant le prochain tour",
+                  duration: workout.roundRestTime,
+                  round: r,
+                  totalRounds: workout.totalRounds,
+                  exerciseIndex: e + 1,
+                  exerciseTotal: workout.exercises.length,
+                  exerciseData: null
+                });
+              }
+            } else {
+              // Repos standard entre exercices
+              seq.push({
+                type: "rest",
+                title: "REPOS",
+                description: "Respire profondément et prépare le mouvement suivant",
+                duration: workout.restTime,
+                round: r,
+                totalRounds: workout.totalRounds,
+                exerciseIndex: e + 1,
+                exerciseTotal: workout.exercises.length,
+                exerciseData: null
+              });
+            }
+          }
+        }
+
+        // 3. Écran final de victoire
+        seq.push({
+          type: "completed",
+          title: "CIRCUIT TERMINÉ !",
+          description: "Bravo ! Entraînement complet validé avec succès !",
+          duration: 0,
+          round: workout.totalRounds,
+          totalRounds: workout.totalRounds,
+          exerciseIndex: workout.exercises.length,
+          exerciseTotal: workout.exercises.length,
+          exerciseData: null
+        });
+
+        return seq;
+      }
+
+      function calculateTotalWorkoutDuration(workout) {
+        const totalWork = workout.totalRounds * workout.exercises.length * workout.workTime;
+        const regularRestsPerRound = workout.exercises.length - 1;
+        const totalRegularRests = workout.totalRounds * regularRestsPerRound * workout.restTime;
+        const totalRoundRests = (workout.totalRounds - 1) * workout.roundRestTime;
+        const totalSeconds = workout.prepTime + totalWork + totalRegularRests + totalRoundRests;
+
+        const m = Math.floor(totalSeconds / 60);
+        const s = totalSeconds % 60;
+        return `${m}m ${s > 0 ? s + 's' : ''}`.trim();
+      }
+
+      /* ==========================================================================
+         WEB AUDIO API (BIPS SONORES)
+         - 3 bips courts (880 Hz) pour les 3 dernières secondes (3, 2, 1)
+         - 1 bip long (1320 Hz) au changement d'état (0s)
+         ========================================================================== */
+      class SoundEngine {
+        constructor() {
+          this.ctx = null;
+          this.enabled = true;
+        }
+
+        initContext() {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+              this.ctx = new AudioCtx();
+            }
+          }
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume();
+          }
+        }
+
+        playTone(frequency, durationMs, type = "sine", gainVal = 0.25) {
+          if (!this.enabled) return;
+          try {
+            this.initContext();
+            if (!this.ctx) return;
+
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc.type = type;
+            osc.frequency.setValueAtTime(frequency, this.ctx.currentTime);
+
+            gain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(gainVal, this.ctx.currentTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + (durationMs / 1000));
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start();
+            osc.stop(this.ctx.currentTime + (durationMs / 1000));
+          } catch (e) {
+            console.warn("Audio non disponible:", e);
+          }
+        }
+
+        playShortBeep() {
+          this.playTone(880, 110, "square", 0.2); // 880 Hz = A5
+          if (navigator.vibrate) {
+            try { navigator.vibrate(80); } catch (_) {}
+          }
+        }
+
+        playTransitionBeep() {
+          this.playTone(1320, 500, "sawtooth", 0.28); // 1320 Hz = E6
+          if (navigator.vibrate) {
+            try { navigator.vibrate([200, 100, 200]); } catch (_) {}
+          }
+        }
+
+        playVictoryChime() {
+          if (!this.enabled) return;
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, idx) => {
+            setTimeout(() => {
+              this.playTone(freq, 250, "sine", 0.3);
+            }, idx * 160);
+          });
+          if (navigator.vibrate) {
+            try { navigator.vibrate([150, 80, 150, 80, 400]); } catch (_) {}
+          }
+        }
+      }
+
+      /* ==========================================================================
+         SCREEN WAKE LOCK API (EMPÊCHE L'ÉCRAN DE S'ÉTEINDRE)
+         ========================================================================== */
+      class ScreenWakeLockManager {
+        constructor(onStatusChange) {
+          this.wakeLock = null;
+          this.onStatusChange = onStatusChange;
+          this.requested = false;
+
+          document.addEventListener("visibilitychange", async () => {
+            if (this.wakeLock !== null && document.visibilityState === "visible") {
+              await this.request();
+            }
+          });
+        }
+
+        async request() {
+          this.requested = true;
+          if ("wakeLock" in navigator) {
+            try {
+              this.wakeLock = await navigator.wakeLock.request("screen");
+              this.wakeLock.addEventListener("release", () => {
+                if (!(this.requested && document.visibilityState === "visible")) {
+                  this.onStatusChange(false);
+                }
+              });
+              this.onStatusChange(true);
+            } catch (err) {
+              this.onStatusChange(false);
+            }
+          } else {
+            this.onStatusChange(false);
+          }
+        }
+
+        async release() {
+          this.requested = false;
+          if (this.wakeLock !== null) {
+            try {
+              await this.wakeLock.release();
+              this.wakeLock = null;
+            } catch (e) {}
+          }
+          this.onStatusChange(false);
+        }
+      }
+
+      /* ==========================================================================
+         GESTIONNAIRE PRINCIPAL DE L'APPLICATION (APP CONTROLLER)
+         ========================================================================== */
+      class HiitApp {
+        constructor() {
+          this.activeWorkout = workouts.escalade;
+          this.sequence = buildWorkoutSequence(this.activeWorkout);
+          this.currentIndex = 0;
+          this.state = "idle"; // 'idle' | 'running' | 'paused' | 'finished'
+          this.remainingSeconds = this.sequence[0].duration;
+          this.lastTimestamp = null;
+          this.animationFrameId = null;
+          this.totalElapsedSeconds = 0;
+          this.lastBeepSecond = null;
+
+          this.sound = new SoundEngine();
+          this.wakeLock = new ScreenWakeLockManager((isActive) => this.updateWakeLockUI(isActive));
+
+          this.cacheDom();
+          this.renderHomeCircuits();
+          this.bindEvents();
+          this.updateDisplay();
+        }
+
+        cacheDom() {
+          this.dom = {
+            viewHome: document.getElementById("view-home"),
+            viewTimer: document.getElementById("view-timer"),
+            circuitsGrid: document.getElementById("circuits-grid-container"),
+            btnBackHome: document.getElementById("btn-back-home"),
+            circuitNameLabel: document.getElementById("circuit-name-label"),
+            themeColorMeta: document.getElementById("theme-color-meta"),
+            progressBar: document.getElementById("progress-bar"),
+            overallProgressBar: document.getElementById("overall-progress-bar"),
+            stateTag: document.getElementById("state-tag"),
+            currentTitle: document.getElementById("current-title"),
+            currentDesc: document.getElementById("current-description"),
+            timerGiant: document.getElementById("timer-giant"),
+            roundIndicator: document.getElementById("round-indicator"),
+            exerciseIndicator: document.getElementById("exercise-indicator"),
+            nextExName: document.getElementById("next-exercise-name"),
+            nextExSub: document.getElementById("next-exercise-sub"),
+            nextDurationBadge: document.getElementById("next-duration-badge"),
+            btnPlay: document.getElementById("btn-toggle-play"),
+            playBtnText: document.getElementById("play-btn-text"),
+            playIcon: document.getElementById("play-icon"),
+            pauseIcon: document.getElementById("pause-icon"),
+            btnPrev: document.getElementById("btn-prev"),
+            btnNext: document.getElementById("btn-next"),
+            btnReset: document.getElementById("btn-reset"),
+            timeElapsed: document.getElementById("time-elapsed-label"),
+            timeRemaining: document.getElementById("time-remaining-label"),
+            wakeStatusBadge: document.getElementById("wake-lock-status"),
+            wakeStatusText: document.getElementById("wake-lock-text"),
+            btnSound: document.getElementById("btn-sound-toggle"),
+            iconSoundOn: document.getElementById("icon-sound-on"),
+            iconSoundOff: document.getElementById("icon-sound-off"),
+            btnFullscreen: document.getElementById("btn-fullscreen"),
+            btnListModal: document.getElementById("btn-list-modal"),
+            modal: document.getElementById("modal-exercises"),
+            modalTitle: document.getElementById("modal-circuit-title"),
+            btnCloseModal: document.getElementById("btn-close-modal"),
+            btnModalOk: document.getElementById("btn-modal-ok"),
+            exerciseListContainer: document.getElementById("exercise-list-container"),
+            btnOpenAddGuide: document.getElementById("btn-open-add-guide"),
+            modalAddGuide: document.getElementById("modal-add-guide"),
+            btnCloseAddModal: document.getElementById("btn-close-add-modal"),
+            btnModalAddOk: document.getElementById("btn-modal-add-ok")
+          };
+        }
+
+        renderHomeCircuits() {
+          const container = this.dom.circuitsGrid;
+          container.innerHTML = "";
+
+          Object.values(workouts).forEach((workout) => {
+            const isDefault = workout.id === "escalade";
+            const totalDurationStr = calculateTotalWorkoutDuration(workout);
+
+            const card = document.createElement("div");
+            card.className = `circuit-card ${isDefault ? 'highlight' : ''}`;
+            card.innerHTML = `
+              <div class="circuit-card-header">
+                <div>
+                  <span class="circuit-badge ${isDefault ? 'badge-primary' : ''}">${workout.category || 'Circuit HIIT'}</span>
+                  <h2 class="circuit-title">${workout.name}</h2>
+                </div>
+              </div>
+
+              <div class="circuit-stats">
+                <div class="stat-chip">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+                  ${workout.totalRounds} Tours
+                </div>
+                <div class="stat-chip">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  ~${totalDurationStr}
+                </div>
+                <div class="stat-chip">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 20V10"></path><path d="M12 20V4"></path><path d="M6 20v-6"></path></svg>
+                  ${workout.exercises.length} Exercices
+                </div>
+                <div class="stat-chip" style="color: #38bdf8;">
+                  ⏱ ${workout.workTime}s / ${workout.restTime}s (repos tour ${workout.roundRestTime}s)
+                </div>
+              </div>
+
+              <div class="circuit-exercises-preview">
+                <div class="preview-label">Exercices au programme :</div>
+                ${workout.exercises.map(ex => `
+                  <div class="exercise-mini-row">
+                    <span class="exercise-mini-num">${ex.id}</span>
+                    <span class="exercise-mini-name">${ex.name}</span>
+                    <span class="exercise-mini-desc">${ex.description}</span>
+                  </div>
+                `).join('')}
+              </div>
+
+              <div class="circuit-card-actions">
+                <button class="btn-start-circuit" data-circuit-id="${workout.id}">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                  Lancer ce circuit
+                </button>
+                <button class="btn-circuit-details" data-circuit-id="${workout.id}">
+                  Détails
+                </button>
+              </div>
+            `;
+
+            container.appendChild(card);
+          });
+
+          // Attacher événements sur les boutons des cartes
+          container.querySelectorAll(".btn-start-circuit").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              const id = btn.getAttribute("data-circuit-id");
+              this.selectAndStartWorkout(id);
+            });
+          });
+
+          container.querySelectorAll(".btn-circuit-details").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              const id = btn.getAttribute("data-circuit-id");
+              this.showWorkoutModal(workouts[id]);
+            });
+          });
+        }
+
+        bindEvents() {
+          // Navigation Accueil <-> Chronomètre
+          this.dom.btnBackHome.addEventListener("click", () => {
+            if (this.state === "running") {
+              if (confirm("L'entraînement est en cours. Voulez-vous le mettre en pause et revenir au menu des circuits ?")) {
+                this.pause();
+                this.switchToHome();
+              }
+            } else {
+              this.switchToHome();
+            }
+          });
+
+          // Play / Pause
+          this.dom.btnPlay.addEventListener("click", () => this.togglePlay());
+
+          // Sauter avant / arrière
+          this.dom.btnNext.addEventListener("click", () => this.skipNext());
+          this.dom.btnPrev.addEventListener("click", () => this.skipPrev());
+          this.dom.btnReset.addEventListener("click", () => this.resetWorkout());
+
+          // Son On/Off
+          this.dom.btnSound.addEventListener("click", () => {
+            this.sound.enabled = !this.sound.enabled;
+            if (this.sound.enabled) {
+              this.sound.initContext();
+              this.sound.playTone(700, 100);
+              this.dom.iconSoundOn.style.display = "block";
+              this.dom.iconSoundOff.style.display = "none";
+              this.dom.btnSound.classList.add("active");
+            } else {
+              this.dom.iconSoundOn.style.display = "none";
+              this.dom.iconSoundOff.style.display = "block";
+              this.dom.btnSound.classList.remove("active");
+            }
+          });
+
+          // Plein écran
+          this.dom.btnFullscreen.addEventListener("click", () => {
+            if (!document.fullscreenElement) {
+              document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+              document.exitFullscreen().catch(() => {});
+            }
+          });
+
+          // Modale liste exercices
+          this.dom.btnListModal.addEventListener("click", () => {
+            this.showWorkoutModal(this.activeWorkout);
+          });
+          const closeModal = () => this.dom.modal.classList.remove("open");
+          this.dom.btnCloseModal.addEventListener("click", closeModal);
+          this.dom.btnModalOk.addEventListener("click", closeModal);
+          this.dom.modal.addEventListener("click", (e) => {
+            if (e.target === this.dom.modal) closeModal();
+          });
+
+          // Modale guide d'ajout de circuits
+          this.dom.btnOpenAddGuide.addEventListener("click", () => {
+            this.dom.modalAddGuide.classList.add("open");
+          });
+          const closeAddModal = () => this.dom.modalAddGuide.classList.remove("open");
+          this.dom.btnCloseAddModal.addEventListener("click", closeAddModal);
+          this.dom.btnModalAddOk.addEventListener("click", closeAddModal);
+          this.dom.modalAddGuide.addEventListener("click", (e) => {
+            if (e.target === this.dom.modalAddGuide) closeAddModal();
+          });
+
+          // Raccourcis clavier (Espace = Play/Pause, Flèche Droite = Next, R = Reset)
+          window.addEventListener("keydown", (e) => {
+            if (this.dom.viewTimer.classList.contains("active")) {
+              if (e.code === "Space") {
+                e.preventDefault();
+                this.togglePlay();
+              } else if (e.code === "ArrowRight") {
+                this.skipNext();
+              } else if (e.code === "ArrowLeft") {
+                this.skipPrev();
+              } else if (e.key.toLowerCase() === "r") {
+                this.resetWorkout();
+              }
+            }
+          });
+        }
+
+        switchToHome() {
+          this.dom.viewTimer.classList.remove("active");
+          this.dom.viewHome.classList.add("active");
+          document.documentElement.style.setProperty("--current-bg", "#090a0f");
+          this.dom.themeColorMeta.setAttribute("content", "#090a0f");
+        }
+
+        switchToTimer() {
+          this.dom.viewHome.classList.remove("active");
+          this.dom.viewTimer.classList.add("active");
+          this.updateDisplay();
+        }
+
+        selectAndStartWorkout(workoutId) {
+          if (workouts[workoutId]) {
+            this.activeWorkout = workouts[workoutId];
+            this.dom.circuitNameLabel.textContent = this.activeWorkout.name;
+            this.sequence = buildWorkoutSequence(this.activeWorkout);
+            this.currentIndex = 0;
+            this.remainingSeconds = this.sequence[0].duration;
+            this.totalElapsedSeconds = 0;
+            this.lastBeepSecond = null;
+            this.state = "idle";
+            this.updatePlayButton();
+            this.switchToTimer();
+            // Démarre après bascule
+            this.sound.initContext();
+          }
+        }
+
+        showWorkoutModal(workout) {
+          this.dom.modalTitle.textContent = workout.name;
+          this.dom.exerciseListContainer.innerHTML = workout.exercises
+            .map(
+              (ex) => `
+              <div class="exercise-item">
+                <div class="exercise-num">${ex.id}</div>
+                <div class="exercise-info">
+                  <h4>${ex.name}</h4>
+                  <p><strong>Description :</strong> ${ex.description}</p>
+                  ${ex.tips ? `<p style="margin-top: 3px; color: #38bdf8; font-size: 0.78rem;">💡 ${ex.tips}</p>` : ''}
+                </div>
+              </div>
+            `
+            )
+            .join("");
+          this.dom.modal.classList.add("open");
+        }
+
+        updateWakeLockUI(isActive) {
+          if (isActive) {
+            this.dom.wakeStatusBadge.classList.add("wake-active");
+            this.dom.wakeStatusText.textContent = "Écran maintenu allumé (Wake Lock actif)";
+          } else {
+            this.dom.wakeStatusBadge.classList.remove("wake-active");
+            this.dom.wakeStatusText.textContent = "Veille écran automatique";
+          }
+        }
+
+        togglePlay() {
+          this.sound.initContext();
+          if (this.state === "running") {
+            this.pause();
+          } else {
+            this.start();
+          }
+        }
+
+        start() {
+          if (this.state === "finished") {
+            this.resetWorkout();
+          }
+          this.state = "running";
+          this.lastTimestamp = performance.now();
+          this.wakeLock.request();
+          this.updatePlayButton();
+          this.tick();
+        }
+
+        pause() {
+          this.state = "paused";
+          if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+          }
+          this.wakeLock.release();
+          this.updatePlayButton();
+          this.updateDisplay();
+        }
+
+        updatePlayButton() {
+          const btn = this.dom.btnPlay;
+          btn.className = "big-action-btn";
+
+          if (this.state === "running") {
+            btn.classList.add("btn-pause");
+            this.dom.playIcon.style.display = "none";
+            this.dom.pauseIcon.style.display = "block";
+            this.dom.playBtnText.textContent = "PAUSE";
+          } else if (this.state === "paused") {
+            btn.classList.add("btn-resume");
+            this.dom.playIcon.style.display = "block";
+            this.dom.pauseIcon.style.display = "none";
+            this.dom.playBtnText.textContent = "REPRENDRE";
+          } else {
+            btn.classList.add("btn-start");
+            this.dom.playIcon.style.display = "block";
+            this.dom.pauseIcon.style.display = "none";
+            this.dom.playBtnText.textContent = "DÉMARRER";
+          }
+        }
+
+        skipNext() {
+          if (this.currentIndex < this.sequence.length - 1) {
+            this.currentIndex++;
+            this.remainingSeconds = this.sequence[this.currentIndex].duration;
+            this.lastBeepSecond = null;
+            this.sound.playTransitionBeep();
+            this.updateDisplay();
+          }
+        }
+
+        skipPrev() {
+          if (this.currentIndex > 0) {
+            this.currentIndex--;
+            this.remainingSeconds = this.sequence[this.currentIndex].duration;
+            this.lastBeepSecond = null;
+            this.updateDisplay();
+          }
+        }
+
+        resetWorkout() {
+          this.pause();
+          this.currentIndex = 0;
+          this.remainingSeconds = this.sequence[0].duration;
+          this.totalElapsedSeconds = 0;
+          this.lastBeepSecond = null;
+          this.state = "idle";
+          this.updatePlayButton();
+          this.updateDisplay();
+        }
+
+        tick() {
+          if (this.state !== "running") return;
+
+          const now = performance.now();
+          const delta = (now - this.lastTimestamp) / 1000;
+          this.lastTimestamp = now;
+
+          this.remainingSeconds -= delta;
+          this.totalElapsedSeconds += delta;
+
+          const currentStep = this.sequence[this.currentIndex];
+          const integerCeil = Math.ceil(this.remainingSeconds);
+
+          // 3 bips courts à 3, 2, 1 secondes
+          if (integerCeil <= 3 && integerCeil >= 1 && integerCeil !== this.lastBeepSecond && currentStep.type !== "completed") {
+            this.lastBeepSecond = integerCeil;
+            this.sound.playShortBeep();
+          }
+
+          // Transition quand le chrono atteint 0
+          if (this.remainingSeconds <= 0) {
+            if (this.currentIndex < this.sequence.length - 1) {
+              this.currentIndex++;
+              this.remainingSeconds = this.sequence[this.currentIndex].duration;
+              this.lastBeepSecond = null;
+
+              if (this.sequence[this.currentIndex].type === "completed") {
+                this.state = "finished";
+                this.sound.playVictoryChime();
+                this.wakeLock.release();
+                this.updatePlayButton();
+              } else {
+                this.sound.playTransitionBeep();
+              }
+            } else {
+              this.state = "finished";
+              this.sound.playVictoryChime();
+              this.wakeLock.release();
+              this.updatePlayButton();
+            }
+          }
+
+          this.updateDisplay();
+
+          if (this.state === "running") {
+            this.animationFrameId = requestAnimationFrame(() => this.tick());
+          }
+        }
+
+        formatMMSS(secondsFloat) {
+          const secs = Math.max(0, Math.ceil(secondsFloat));
+          const m = Math.floor(secs / 60);
+          const s = secs % 60;
+          return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+        }
+
+        updateDisplay() {
+          const step = this.sequence[this.currentIndex];
+          const nextStep = this.sequence[this.currentIndex + 1] || null;
+
+          // 1. Textes principaux
+          this.dom.stateTag.textContent = this.getStateTagLabel(step);
+          this.dom.currentTitle.textContent = step.title;
+          this.dom.currentDesc.textContent = step.description;
+
+          // 2. Chronomètre géant
+          const formattedTime = this.formatMMSS(this.remainingSeconds);
+          this.dom.timerGiant.textContent = formattedTime;
+
+          if (this.remainingSeconds <= 3.2 && this.remainingSeconds > 0 && this.state === "running") {
+            this.dom.timerGiant.classList.add("pulse-warning");
+          } else {
+            this.dom.timerGiant.classList.remove("pulse-warning");
+          }
+
+          // 3. Indicateurs Tour et Exercice
+          if (step.type === "completed") {
+            this.dom.roundIndicator.textContent = "Fini !";
+            this.dom.exerciseIndicator.textContent = `${this.activeWorkout.exercises.length}/${this.activeWorkout.exercises.length}`;
+          } else {
+            this.dom.roundIndicator.textContent = `Tour ${step.round}/${step.totalRounds}`;
+            this.dom.exerciseIndicator.textContent = step.exerciseIndex > 0 ? `Exo ${step.exerciseIndex}/${step.exerciseTotal}` : `Prêt`;
+          }
+
+          // 4. Encart "À SUIVRE :"
+          if (nextStep && nextStep.type !== "completed") {
+            this.dom.nextExName.textContent = nextStep.title;
+            if (nextStep.type === "work") {
+              this.dom.nextExSub.textContent = nextStep.description;
+              this.dom.nextDurationBadge.textContent = `${nextStep.duration}s`;
+            } else if (nextStep.type === "round_rest") {
+              this.dom.nextExSub.textContent = "Pause longue entre les tours";
+              this.dom.nextDurationBadge.textContent = `${nextStep.duration}s`;
+            } else {
+              this.dom.nextExSub.textContent = "Repos standard";
+              this.dom.nextDurationBadge.textContent = `${nextStep.duration}s`;
+            }
+          } else if (nextStep && nextStep.type === "completed") {
+            this.dom.nextExName.textContent = "Fin de séance";
+            this.dom.nextExSub.textContent = "Dernier effort !";
+            this.dom.nextDurationBadge.textContent = "🏁";
+          } else {
+            this.dom.nextExName.textContent = "Félicitations !";
+            this.dom.nextExSub.textContent = "Séance validée";
+            this.dom.nextDurationBadge.textContent = "★";
+          }
+
+          // 5. Barre de progression fluide de l'intervalle
+          let intervalProgress = 0;
+          if (step.duration > 0) {
+            intervalProgress = Math.min(100, Math.max(0, ((step.duration - this.remainingSeconds) / step.duration) * 100));
+          } else {
+            intervalProgress = 100;
+          }
+          this.dom.progressBar.style.width = `${intervalProgress}%`;
+
+          // 6. Progression globale et compteurs de temps
+          const totalSeqDuration = this.sequence.reduce((acc, cur) => acc + cur.duration, 0);
+          const totalRemaining = Math.max(0, totalSeqDuration - this.totalElapsedSeconds);
+          this.dom.timeElapsed.textContent = this.formatMMSS(this.totalElapsedSeconds);
+          this.dom.timeRemaining.textContent = this.formatMMSS(totalRemaining);
+
+          const overallPercent = Math.min(100, Math.max(0, (this.totalElapsedSeconds / totalSeqDuration) * 100));
+          this.dom.overallProgressBar.style.width = `${overallPercent}%`;
+
+          // 7. Couleurs d'état dynamiques
+          this.applyThemeColors(step.type);
+        }
+
+        getStateTagLabel(step) {
+          switch (step.type) {
+            case "prep":
+              return "PRÉPARATION";
+            case "work":
+              return "TRAVAIL";
+            case "rest":
+              return "REPOS";
+            case "round_rest":
+              return "REPOS DE TOUR";
+            case "completed":
+              return "VICTOIRE";
+            default:
+              return "HIIT";
+          }
+        }
+
+        applyThemeColors(stepType) {
+          const root = document.documentElement;
+
+          if (this.state === "paused") {
+            root.style.setProperty("--current-bg", "#0f172a");
+            root.style.setProperty("--current-primary", "#f59e0b");
+            root.style.setProperty("--current-glow", "rgba(245, 158, 11, 0.35)");
+            root.style.setProperty("--progress-color", "#f59e0b");
+            this.dom.themeColorMeta.setAttribute("content", "#0f172a");
+            return;
+          }
+
+          switch (stepType) {
+            case "work":
+              root.style.setProperty("--current-bg", "var(--theme-work-bg)");
+              root.style.setProperty("--current-primary", "var(--theme-work-primary)");
+              root.style.setProperty("--current-accent", "var(--theme-work-accent)");
+              root.style.setProperty("--current-glow", "var(--theme-work-glow)");
+              root.style.setProperty("--progress-color", "var(--theme-work-primary)");
+              this.dom.themeColorMeta.setAttribute("content", "#1c0508");
+              break;
+
+            case "rest":
+              root.style.setProperty("--current-bg", "var(--theme-rest-bg)");
+              root.style.setProperty("--current-primary", "var(--theme-rest-primary)");
+              root.style.setProperty("--current-accent", "var(--theme-rest-accent)");
+              root.style.setProperty("--current-glow", "var(--theme-rest-glow)");
+              root.style.setProperty("--progress-color", "var(--theme-rest-primary)");
+              this.dom.themeColorMeta.setAttribute("content", "#03141f");
+              break;
+
+            case "round_rest":
+              root.style.setProperty("--current-bg", "var(--theme-round-rest-bg)");
+              root.style.setProperty("--current-primary", "var(--theme-round-rest-primary)");
+              root.style.setProperty("--current-accent", "var(--theme-round-rest-accent)");
+              root.style.setProperty("--current-glow", "var(--theme-round-rest-glow)");
+              root.style.setProperty("--progress-color", "var(--theme-round-rest-primary)");
+              this.dom.themeColorMeta.setAttribute("content", "#090c24");
+              break;
+
+            case "prep":
+              root.style.setProperty("--current-bg", "var(--theme-prep-bg)");
+              root.style.setProperty("--current-primary", "var(--theme-prep-primary)");
+              root.style.setProperty("--current-accent", "var(--theme-prep-accent)");
+              root.style.setProperty("--current-glow", "var(--theme-prep-glow)");
+              root.style.setProperty("--progress-color", "var(--theme-prep-primary)");
+              this.dom.themeColorMeta.setAttribute("content", "#1c1503");
+              break;
+
+            case "completed":
+              root.style.setProperty("--current-bg", "var(--theme-done-bg)");
+              root.style.setProperty("--current-primary", "var(--theme-done-primary)");
+              root.style.setProperty("--current-accent", "var(--theme-done-accent)");
+              root.style.setProperty("--current-glow", "var(--theme-done-glow)");
+              root.style.setProperty("--progress-color", "var(--theme-done-primary)");
+              this.dom.themeColorMeta.setAttribute("content", "#031c10");
+              break;
+
+            default:
+              root.style.setProperty("--current-bg", "var(--bg-idle)");
+              root.style.setProperty("--current-primary", "#ffffff");
+              root.style.setProperty("--current-glow", "transparent");
+              root.style.setProperty("--progress-color", "#64748b");
+              this.dom.themeColorMeta.setAttribute("content", "#090a0f");
+          }
+        }
+      }
+
+      // Initialisation dès que le DOM est prêt
+      document.addEventListener("DOMContentLoaded", () => {
+        window.hiitApp = new HiitApp();
+
+        // Enregistrement du Service Worker
+        if ("serviceWorker" in navigator && window.location.protocol.startsWith("http")) {
+          navigator.serviceWorker.register("/sw.js").catch(() => {});
+        }
+      });
+    </script>
+  </body>
+</html>
